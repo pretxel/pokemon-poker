@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A planning poker room
+model Room {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  players Player[]
+  stories Story[]
+}
+
+// A participant in a room
+model Player {
+  id       String  @id @default(cuid())
+  name     String
+  isAdmin  Boolean @default(false)
+  socketId String? // current socket connection id, null when disconnected
+  vote     String? // current round vote value (e.g. "5", "?", "∞")
+
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  votes Vote[]
+
+  createdAt DateTime @default(now())
+}
+
+// A story (user story or ticket) being estimated
+model Story {
+  id        String    @id @default(cuid())
+  name      String
+  revealed  Boolean   @default(false)
+  isCurrent Boolean   @default(false) // true for the active story in the room
+  average   Float?    // computed average of numeric votes when saved
+  savedAt   DateTime? // set when the story is saved to history
+
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  votes Vote[]
+
+  createdAt DateTime @default(now())
+}
+
+// An individual vote cast by a player on a story
+model Vote {
+  id    String @id @default(cuid())
+  value String // pokemon card value: "0","1","2","3","5","8","13","21","34","?","∞"
+
+  playerId String
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([playerId, storyId])
+}

@@ -92,7 +92,7 @@ All interactions use Socket.io events emitted between the client and the custom 
 - `save-story` — Admin saves results to history and starts a new round
 - `room-joined` / `room-updated` — Server pushes state to clients
 
-Room state is held in-memory on the server. When all players disconnect, the room is automatically deleted. If the admin disconnects, admin rights transfer to the next player.
+Room state is persisted in PostgreSQL via Prisma. When all players disconnect, the room is automatically deleted. If the admin disconnects, admin rights transfer to the next player.
 
 ## File Structure
 
@@ -115,6 +115,8 @@ pokemon_poker/
   server.ts             # Custom HTTP server — Next.js + Socket.io
   next.config.ts        # Next.js configuration (PokeAPI image domains)
   __tests__/            # Test files
+  lib/
+    prisma.ts           # Prisma client singleton
 ```
 
 ## NPM Scripts
@@ -128,4 +130,3 @@ pokemon_poker/
 | `npm run db:generate` | Generate Prisma client                  |
 | `npm run db:migrate`  | Run Prisma database migrations          |
 | `npm run db:studio`   | Open Prisma Studio (database GUI)       |
-# pokemon-poker
