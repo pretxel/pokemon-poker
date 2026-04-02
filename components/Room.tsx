@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import socket from '@/lib/socket';
 import PokemonCard, { POKEMON_CARDS } from './PokemonCard';
 import PlayerList from './PlayerList';
 import VoteResults from './VoteResults';
@@ -14,6 +13,14 @@ interface RoomProps {
   isAdmin: boolean;
   room: RoomState;
   onLeave: () => void;
+}
+
+async function roomAction(path: string, body: Record<string, unknown>) {
+  await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
 export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomProps) {
@@ -30,26 +37,26 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
 
   function handleVote(value: string) {
     if (revealed || !currentStory?.name) return;
-    socket.emit('vote', { value });
+    roomAction('/api/vote', { roomCode: roomId, playerId, value });
   }
 
   function handleSetStory(e: React.FormEvent) {
     e.preventDefault();
     if (!storyInput.trim()) return;
-    socket.emit('set-story', { storyName: storyInput.trim() });
+    roomAction('/api/set-story', { roomCode: roomId, playerId, storyName: storyInput.trim() });
     setStoryInput('');
   }
 
   function handleReveal() {
-    socket.emit('reveal-votes');
+    roomAction('/api/reveal-votes', { roomCode: roomId, playerId });
   }
 
   function handleReset() {
-    socket.emit('reset-round');
+    roomAction('/api/reset-round', { roomCode: roomId, playerId });
   }
 
   function handleSaveStory() {
-    socket.emit('save-story');
+    roomAction('/api/save-story', { roomCode: roomId, playerId });
     setStoryInput('');
   }
 
@@ -61,9 +68,8 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
     });
   }
 
-  function handleLeave() {
-    socket.disconnect();
-    socket.connect();
+  async function handleLeave() {
+    await roomAction('/api/leave-room', { roomCode: roomId, playerId });
     onLeave();
   }
 

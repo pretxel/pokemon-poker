@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import socket from '@/lib/socket';
+import type { RoomState } from '@/types';
 
 function PokeballSVG() {
   return (
@@ -17,32 +17,58 @@ function PokeballSVG() {
 }
 
 interface HomeProps {
-  error: string | null;
-  clearError: () => void;
+  onJoined: (data: { roomId: string; playerId: string; room: RoomState }) => void;
   initialRoomId?: string;
 }
 
-export default function Home({ error, clearError, initialRoomId }: HomeProps) {
+export default function Home({ onJoined, initialRoomId }: HomeProps) {
   const [createName, setCreateName] = useState('');
   const [createRoom, setCreateRoom] = useState('');
   const [joinName, setJoinName] = useState('');
   const [joinCode, setJoinCode] = useState(initialRoomId ?? '');
   const [loading, setLoading] = useState<'create' | 'join' | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleCreate(e: React.FormEvent) {
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!createName.trim() || !createRoom.trim()) return;
     setLoading('create');
-    socket.emit('create-room', { roomName: createRoom.trim(), playerName: createName.trim() });
-    setTimeout(() => setLoading(null), 4000);
+    setError(null);
+    try {
+      const res = await fetch('/api/create-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomName: createRoom.trim(), playerName: createName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'Failed to create room.'); return; }
+      onJoined(data);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(null);
+    }
   }
 
-  function handleJoin(e: React.FormEvent) {
+  async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
     if (!joinName.trim() || !joinCode.trim()) return;
     setLoading('join');
-    socket.emit('join-room', { roomId: joinCode.trim().toUpperCase(), playerName: joinName.trim() });
-    setTimeout(() => setLoading(null), 4000);
+    setError(null);
+    try {
+      const res = await fetch('/api/join-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: joinCode.trim().toUpperCase(), playerName: joinName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'Failed to join room.'); return; }
+      onJoined(data);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(null);
+    }
   }
 
   return (
@@ -63,7 +89,7 @@ export default function Home({ error, clearError, initialRoomId }: HomeProps) {
           <span>⚠️</span>
           <span style={{ flex: 1 }}>{error}</span>
           <button
-            onClick={clearError}
+            onClick={() => setError(null)}
             style={{
               background: 'none',
               border: 'none',

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import socket from '@/lib/socket';
+import { getPusher } from '@/lib/pusher-client';
 import Home from './Home';
 import Room from './Room';
 import type { RoomState } from '@/types';
@@ -14,7 +14,6 @@ interface AppState {
   playerName: string | null;
   isAdmin: boolean;
   room: RoomState | null;
-  error: string | null;
 }
 
 const initialState: AppState = {
@@ -24,7 +23,6 @@ const initialState: AppState = {
   playerName: null,
   isAdmin: false,
   room: null,
-  error: null,
 };
 
 interface AppProps {
@@ -35,53 +33,67 @@ export default function App({ initialRoomId }: AppProps) {
   const router = useRouter();
   const [state, setState] = useState<AppState>(initialState);
 
+  // Subscribe to Pusher room channel while in a room
   useEffect(() => {
-    function onRoomJoined({ roomId, playerId, room }: { roomId: string; playerId: string; room: RoomState }) {
-      const me = room.players.find((p) => p.id === playerId);
-      setState((prev) => ({
-        ...prev,
-        view: 'room',
-        roomId,
-        playerId,
-        playerName: me ? me.name : prev.playerName,
-        isAdmin: me ? me.isAdmin : false,
-        room,
-        error: null,
-      }));
-      // Update URL without navigating — router.push would unmount this App instance
-      // and lose all socket state before the Room can render.
-      window.history.replaceState(null, '', `/room/${roomId}`);
-    }
+    if (!state.roomId) return;
 
-    function onRoomUpdated(room: RoomState) {
+    const pusher = getPusher();
+    const channel = pusher.subscribe(`room-${state.roomId}`);
+
+    channel.bind('room-updated', (room: RoomState) => {
       setState((prev) => {
         if (!prev.playerId) return prev;
         const me = room.players.find((p) => p.id === prev.playerId);
-        return {
-          ...prev,
-          isAdmin: me ? me.isAdmin : prev.isAdmin,
-          room,
-        };
+        return { ...prev, isAdmin: me ? me.isAdmin : prev.isAdmin, room };
       });
-    }
-
-    function onError({ message }: { message: string }) {
-      setState((prev) => ({ ...prev, error: message }));
-    }
-
-    socket.on('room-joined', onRoomJoined);
-    socket.on('room-updated', onRoomUpdated);
-    socket.on('error', onError);
+    });
 
     return () => {
-      socket.off('room-joined', onRoomJoined);
-      socket.off('room-updated', onRoomUpdated);
-      socket.off('error', onError);
+      channel.unbind_all();
+      pusher.unsubscribe(`room-${state.roomId!}`);
     };
-  }, []);
+  }, [state.roomId]);
 
-  function clearError() {
-    setState((prev) => ({ ...prev, error: null }));
+  // Notify server on tab/browser close
+  useEffect(() => {
+    if (state.view !== 'room' || !state.playerId || !state.roomId) return;
+
+    const handleBeforeUnload = () => {
+      const blob = new Blob(
+        [JSON.stringify({ roomCode: state.roomId, playerId: state.playerId })],
+        { type: 'application/json' }
+      );
+      navigator.sendBeacon('/api/leave-room', blob);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [state.view, state.playerId, state.roomId]);
+
+  function onJoined({
+    roomId,
+    playerId,
+    room,
+  }: {
+    roomId: string;
+    playerId: string;
+    room: RoomState;
+  }) {
+    const me = room.players.find((p) => p.id === playerId);
+    setState({
+      view: 'room',
+      roomId,
+      playerId,
+      playerName: me?.name ?? null,
+      isAdmin: me?.isAdmin ?? false,
+      room,
+    });
+    window.history.replaceState(null, '', `/room/${roomId}`);
+  }
+
+  function onLeave() {
+    setState(initialState);
+    router.push('/');
   }
 
   if (state.view === 'room' && state.room) {
@@ -92,10 +104,10 @@ export default function App({ initialRoomId }: AppProps) {
         playerName={state.playerName!}
         isAdmin={state.isAdmin}
         room={state.room}
-        onLeave={() => { setState(initialState); router.push('/'); }}
+        onLeave={onLeave}
       />
     );
   }
 
-  return <Home error={state.error} clearError={clearError} initialRoomId={initialRoomId} />;
+  return <Home onJoined={onJoined} initialRoomId={initialRoomId} />;
 }

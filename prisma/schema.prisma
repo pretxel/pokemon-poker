@@ -3,13 +3,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 // A planning poker room
 model Room {
   id        String   @id @default(cuid())
+  code      String   @unique // 6-char shareable room code (e.g. "ABC123")
   name      String
   createdAt DateTime @default(now())
 
