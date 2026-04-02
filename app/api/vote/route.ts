@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Voting is not currently active.' }, { status: 400 });
   }
 
+  const ALLOWED_VALUES = ['0', '1', '2', '3', '5', '8', '13', '21', '34', '?', '∞'];
+  if (!ALLOWED_VALUES.includes(value)) {
+    return NextResponse.json({ error: 'Invalid vote value.' }, { status: 400 });
+  }
+
   await prisma.$transaction([
     prisma.player.update({ where: { id: playerId }, data: { vote: value } }),
     prisma.vote.upsert({

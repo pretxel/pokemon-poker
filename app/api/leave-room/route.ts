@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
 
   const player = await prisma.player.findUnique({
     where: { id: playerId },
-    include: { room: { include: { players: true } } },
+    include: { room: { include: { players: { orderBy: { createdAt: 'asc' } } } } },
   });
 
   if (!player || player.room.code !== roomCode) {
@@ -23,20 +23,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const ops: Parameters<typeof prisma.$transaction>[0] = [
-    prisma.player.delete({ where: { id: playerId } }),
-  ];
-
   if (wasAdmin) {
-    ops.push(
-      prisma.player.update({
-        where: { id: remainingPlayers[0].id },
-        data: { isAdmin: true },
-      })
-    );
+    await prisma.$transaction([
+      prisma.player.delete({ where: { id: playerId } }),
+      prisma.player.update({ where: { id: remainingPlayers[0].id }, data: { isAdmin: true } }),
+    ]);
+  } else {
+    await prisma.player.delete({ where: { id: playerId } });
   }
-
-  await prisma.$transaction(ops);
 
   const roomState = await getRoomState(roomCode);
   await pusher.trigger(`room-${roomCode}`, 'room-updated', roomState);

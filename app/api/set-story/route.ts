@@ -22,16 +22,18 @@ export async function POST(req: NextRequest) {
     where: { roomId: player.roomId, isCurrent: true },
   });
 
-  if (currentStory) {
-    await prisma.$transaction([
-      prisma.vote.deleteMany({ where: { storyId: currentStory.id } }),
-      prisma.story.update({
-        where: { id: currentStory.id },
-        data: { name: storyName.trim(), revealed: false },
-      }),
-      prisma.player.updateMany({ where: { roomId: player.roomId }, data: { vote: null } }),
-    ]);
+  if (!currentStory) {
+    return NextResponse.json({ error: 'No current story found.' }, { status: 400 });
   }
+
+  await prisma.$transaction([
+    prisma.vote.deleteMany({ where: { storyId: currentStory.id } }),
+    prisma.story.update({
+      where: { id: currentStory.id },
+      data: { name: storyName.trim(), revealed: false },
+    }),
+    prisma.player.updateMany({ where: { roomId: player.roomId }, data: { vote: null } }),
+  ]);
 
   const roomState = await getRoomState(roomCode);
   await pusher.trigger(`room-${roomCode}`, 'room-updated', roomState);

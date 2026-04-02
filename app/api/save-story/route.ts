@@ -23,6 +23,10 @@ export async function POST(req: NextRequest) {
     include: { votes: true },
   });
 
+  if (currentStory && !currentStory.revealed) {
+    return NextResponse.json({ error: 'Votes must be revealed before saving.' }, { status: 400 });
+  }
+
   if (currentStory?.name) {
     const numericVotes = currentStory.votes
       .map((v) => parseFloat(v.value))
