@@ -235,6 +235,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${syne.variable} ${manrope.variable}`}>
       <body>
         {children}
+        <footer className="site-footer">
+          Made with <span className="heart" aria-label="love" role="img">❤️</span>
+          <span className="sep">|</span>2026<span className="sep">|</span>pretxel
+        </footer>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppLd) }}
