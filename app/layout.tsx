@@ -1,26 +1,19 @@
 import type { Metadata, Viewport } from 'next';
-import { Fraunces, DM_Sans, JetBrains_Mono } from 'next/font/google';
+import { Syne, Manrope } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
-const fraunces = Fraunces({
+const syne = Syne({
   subsets: ['latin'],
-  style: ['normal', 'italic'],
-  axes: ['SOFT', 'WONK', 'opsz'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-display',
   display: 'swap',
 });
 
-const dmSans = DM_Sans({
+const manrope = Manrope({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-body',
-  display: 'swap',
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
-  variable: '--font-mono',
   display: 'swap',
 });
 
@@ -35,11 +28,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${fraunces.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
-    >
-      <body>{children}</body>
+    <html lang="en" className={`${syne.variable} ${manrope.variable}`}>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

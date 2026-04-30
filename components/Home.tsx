@@ -5,7 +5,7 @@ import type { RoomState } from '@/types';
 
 function PokeballSVG() {
   return (
-    <svg viewBox="0 0 100 100" className="home-pokeball-svg" aria-hidden="true">
+    <svg viewBox="0 0 100 100" className="home-pokeball-svg">
       <circle cx="50" cy="50" r="48" fill="none" stroke="#111" strokeWidth="3" />
       <path d="M2 50 Q2 2 50 2 Q98 2 98 50 Z" fill="#CC0000" />
       <path d="M2 50 Q2 98 50 98 Q98 98 98 50 Z" fill="white" />
@@ -71,40 +71,31 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
     }
   }
 
-  const hasInitialCode = Boolean(initialRoomId);
-
   return (
     <div className="home-page">
       <div className="home-header">
         <div className="home-logo">
           <PokeballSVG />
-          <h1 className="home-title">
-            Pokémon<span className="accent"> Poker<span className="accent-dot">.</span></span>
-          </h1>
+          <h1 className="home-title">Pokemon Poker</h1>
         </div>
-        <p className="home-subtitle">
-          Honest scrum estimates, with Pokémon as your point scale.
-        </p>
+        <p className="home-subtitle">Scrum planning estimation with your favorite Pokemon</p>
       </div>
 
       {error && (
         <div
           className="alert alert-error fade-in"
-          role="alert"
           style={{ marginBottom: 20, maxWidth: 700, width: '100%' }}
         >
-          <span aria-hidden="true">⚠</span>
+          <span>⚠️</span>
           <span style={{ flex: 1 }}>{error}</span>
           <button
-            type="button"
             onClick={() => setError(null)}
-            aria-label="Dismiss error"
             style={{
               background: 'none',
               border: 'none',
               cursor: 'pointer',
               color: 'inherit',
-              fontSize: '1.2rem',
+              fontSize: '1.1rem',
               lineHeight: 1,
               padding: '0 2px',
             }}
@@ -118,11 +109,12 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
         {/* Create Room Panel */}
         <div className="home-panel">
           <div className="home-panel-title">
-            <span className="display-italic">Start a session</span>
+            <span className="home-panel-icon">✨</span>
+            Create Room
           </div>
           <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div className="form-group">
-              <label htmlFor="create-name">Your name</label>
+              <label htmlFor="create-name">Your Name</label>
               <input
                 id="create-name"
                 className="form-control"
@@ -131,16 +123,15 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
                 onChange={(e) => setCreateName(e.target.value)}
                 maxLength={24}
                 autoComplete="off"
-                autoFocus={!hasInitialCode}
                 required
               />
             </div>
             <div className="form-group">
-              <label htmlFor="create-room">Room name</label>
+              <label htmlFor="create-room">Room Name</label>
               <input
                 id="create-room"
                 className="form-control"
-                placeholder="Sprint 42 planning"
+                placeholder="Sprint 42 Planning"
                 value={createRoom}
                 onChange={(e) => setCreateRoom(e.target.value)}
                 maxLength={40}
@@ -154,9 +145,9 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
               disabled={loading === 'create' || !createName.trim() || !createRoom.trim()}
             >
               {loading === 'create' ? (
-                <><span className="spin">◐</span>Creating…</>
+                <><span className="spin" style={{ display: 'inline-block' }}>⚽</span>Creating…</>
               ) : (
-                <>Create room</>
+                <>🏠 Create Room</>
               )}
             </button>
           </form>
@@ -165,11 +156,12 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
         {/* Join Room Panel */}
         <div className="home-panel">
           <div className="home-panel-title">
-            <span className="display-italic">Join a session</span>
+            <span className="home-panel-icon">🚪</span>
+            Join Room
           </div>
           <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div className="form-group">
-              <label htmlFor="join-name">Your name</label>
+              <label htmlFor="join-name">Your Name</label>
               <input
                 id="join-name"
                 className="form-control"
@@ -178,12 +170,11 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
                 onChange={(e) => setJoinName(e.target.value)}
                 maxLength={24}
                 autoComplete="off"
-                autoFocus={hasInitialCode}
                 required
               />
             </div>
             <div className="form-group">
-              <label htmlFor="join-code">Room code</label>
+              <label htmlFor="join-code">Room Code</label>
               <input
                 id="join-code"
                 className="form-control code-input"
@@ -193,7 +184,6 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
                 maxLength={6}
                 autoComplete="off"
                 required
-                aria-describedby="join-code-hint"
               />
             </div>
             <button
@@ -202,9 +192,9 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
               disabled={loading === 'join' || !joinName.trim() || joinCode.length < 6}
             >
               {loading === 'join' ? (
-                <><span className="spin">◐</span>Joining…</>
+                <><span className="spin" style={{ display: 'inline-block' }}>⚽</span>Joining…</>
               ) : (
-                <>Join room</>
+                <>🚶 Join Room</>
               )}
             </button>
           </form>
@@ -212,21 +202,18 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
       </div>
 
       <div
-        id="join-code-hint"
         style={{
           marginTop: 40,
           maxWidth: 700,
           width: '100%',
           textAlign: 'center',
-          color: 'rgba(255,255,255,0.34)',
-          fontSize: '0.86rem',
-          fontWeight: 500,
-          letterSpacing: '0.02em',
-          fontFamily: 'var(--font-display)',
-          fontStyle: 'italic',
+          color: 'rgba(255,255,255,0.28)',
+          fontSize: '0.82rem',
+          fontWeight: 600,
+          letterSpacing: '0.03em',
         }}
       >
-        Create · share the code · pick a Pokémon · reveal together.
+        Create a room · Share the code · Pick your Pokemon · Reveal together
       </div>
     </div>
   );

@@ -67,8 +67,7 @@ export default function VoteResults({ players, currentStory }: VoteResultsProps)
     <div className="results-panel fade-in">
       {allSame && (
         <div className="consensus-banner">
-          <span className="display-italic">Consensus —</span> everyone voted{' '}
-          <strong className="mono" style={{ fontSize: '1.05em' }}>{voteEntries[0][1]}</strong>
+          🎉 Consensus! Everyone voted <strong>{voteEntries[0][1]}</strong>
         </div>
       )}
 
@@ -87,12 +86,6 @@ export default function VoteResults({ players, currentStory }: VoteResultsProps)
             <div className="stat-value">{max}</div>
           </div>
         </div>
-      )}
-
-      {numericVotes.length === 0 && voteEntries.length > 0 && (
-        <p style={{ color: 'var(--text-dim)', fontSize: '0.92rem', textAlign: 'center', fontStyle: 'italic' }}>
-          Only non-numeric votes — no average to compute.
-        </p>
       )}
 
       {closestCard && !allSame && (

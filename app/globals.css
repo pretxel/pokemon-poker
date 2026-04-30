@@ -29,24 +29,8 @@
   --t: 0.22s;
 
   /* Fonts */
-  --font-display: var(--font-display, 'Fraunces', ui-serif, Georgia, serif);
-  --font-body: var(--font-body, 'DM Sans', system-ui, sans-serif);
-  --font-mono: var(--font-mono, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
-  --focus-ring: 0 0 0 3px rgba(255, 215, 0, 0.45);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
-}
-
-:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-  border-radius: 4px;
+  --font-display: var(--font-display, 'Syne', system-ui, sans-serif);
+  --font-body: var(--font-body, 'Manrope', system-ui, sans-serif);
 }
 
 *, *::before, *::after {
@@ -114,32 +98,9 @@ body::after {
 
 h1, h2, h3, h4, h5 {
   font-family: var(--font-display);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.025em;
-  font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 0;
-}
-
-.display-italic {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 600;
-  font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 1;
-}
-
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-
-kbd {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--border-bright);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  padding: 1px 6px;
-  color: var(--text);
-  letter-spacing: 0.02em;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 /* ── Scrollbar ─────────────────────────────── */
@@ -291,14 +252,12 @@ kbd {
   box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.14);
 }
 .form-control.code-input {
-  font-family: var(--font-mono);
   text-transform: uppercase;
-  letter-spacing: 0.32em;
-  font-size: 1.2rem;
+  letter-spacing: 0.22em;
+  font-size: 1.15rem;
   text-align: center;
-  font-weight: 700;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-  padding-right: 6px;
 }
 
 /* ── Panel / Section containers ────────────── */
@@ -378,19 +337,6 @@ kbd {
   cursor: pointer;
   flex-shrink: 0;
   transition: transform 0.28s var(--ease);
-  background: transparent;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  position: relative;
-}
-.pokemon-card-wrapper:focus-visible {
-  outline: none;
-}
-.pokemon-card-wrapper:focus-visible .pokemon-card-front,
-.pokemon-card-wrapper:focus-visible .pokemon-card-back {
-  box-shadow: 0 0 0 3px var(--yellow), 0 8px 24px rgba(0,0,0,0.5);
 }
 .pokemon-card-wrapper.disabled {
   cursor: not-allowed;
@@ -503,36 +449,13 @@ kbd {
 
 .card-value-badge {
   font-family: var(--font-display);
-  font-size: 1.45rem;
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   line-height: 1;
   align-self: flex-start;
   text-shadow: 0 2px 6px rgba(0,0,0,0.6);
   color: white;
-  font-variation-settings: 'opsz' 144, 'SOFT' 30, 'WONK' 0;
-}
-
-.card-kbd-hint {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 600;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: rgba(0,0,0,0.55);
-  color: rgba(255,255,255,0.75);
-  border: 1px solid rgba(255,255,255,0.18);
-  letter-spacing: 0.02em;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s var(--ease);
-}
-.pokemon-card-wrapper:not(.disabled):hover .card-kbd-hint,
-.pokemon-card-wrapper:focus-visible .card-kbd-hint {
-  opacity: 1;
 }
 .card-sprite {
   width: 72px;
@@ -648,12 +571,10 @@ kbd {
 }
 .stat-value {
   font-family: var(--font-display);
-  font-size: 1.85rem;
-  font-weight: 700;
-  letter-spacing: -0.045em;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
   color: var(--yellow);
-  font-variant-numeric: tabular-nums;
-  font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 0;
 }
 
 .consensus-banner {
@@ -747,11 +668,10 @@ kbd {
 }
 .average-name {
   font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: white;
-  font-variation-settings: 'opsz' 144, 'SOFT' 80, 'WONK' 0;
 }
 
 /* ── Home Page ──────────────────────────────── */
@@ -795,39 +715,22 @@ kbd {
 
 .home-title {
   font-family: var(--font-display);
-  font-size: clamp(3rem, 8vw, 5.2rem);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 0.92;
-  font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 0;
-  color: var(--text);
-}
-
-.home-title .accent {
-  font-style: italic;
-  font-weight: 500;
-  background: linear-gradient(135deg, var(--yellow) 0%, #ff9800 50%, var(--red) 100%);
+  font-size: clamp(2.6rem, 7vw, 4.2rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--yellow) 0%, #ff9800 45%, var(--red) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 1;
-  padding-right: 0.04em;
-}
-
-.home-title .accent-dot {
-  color: var(--yellow);
-  -webkit-text-fill-color: var(--yellow);
+  letter-spacing: -0.03em;
+  line-height: 1.0;
 }
 
 .home-subtitle {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.02rem;
-  color: rgba(238, 238, 255, 0.7);
-  font-weight: 400;
-  letter-spacing: 0;
-  margin-top: 10px;
-  font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 0;
+  font-size: 0.92rem;
+  color: var(--text-dim);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  margin-top: 6px;
 }
 
 .home-grid {
@@ -914,13 +817,12 @@ kbd {
 
 .room-name {
   font-family: var(--font-display);
-  font-size: 1.2rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-variation-settings: 'opsz' 144, 'SOFT' 80, 'WONK' 0;
 }
 
 .room-code-chip {
@@ -931,10 +833,9 @@ kbd {
   border: 1px solid rgba(255,215,0,0.22);
   border-radius: 10px;
   padding: 4px 11px;
-  font-family: var(--font-mono);
-  font-size: 0.84rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
   color: var(--yellow);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
@@ -1005,12 +906,11 @@ kbd {
 
 .current-story-name {
   font-family: var(--font-display);
-  font-size: 1.55rem;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: 800;
   color: var(--yellow);
   padding: 6px 0 2px;
   letter-spacing: -0.03em;
-  font-variation-settings: 'opsz' 144, 'SOFT' 80, 'WONK' 0;
 }
 
 .no-story-text {
@@ -1113,69 +1013,6 @@ kbd {
   flex-shrink: 0;
 }
 
-/* ── Header progress ────────────────────────── */
-
-.header-progress {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px 12px 4px 8px;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-dim);
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-  transition: color var(--t), border-color var(--t), background var(--t);
-}
-.header-progress.complete {
-  color: #4ade80;
-  border-color: rgba(34,211,122,0.45);
-  background: rgba(34,211,122,0.08);
-}
-.header-progress-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--text-dim);
-  transition: background var(--t);
-}
-.header-progress.complete .header-progress-dot {
-  background: #4ade80;
-  box-shadow: 0 0 10px rgba(34,211,122,0.65);
-}
-
-/* ── Toast ──────────────────────────────────── */
-
-.toast {
-  position: fixed;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(20,20,32,0.94);
-  border: 1px solid var(--border-bright);
-  border-radius: 999px;
-  padding: 10px 22px;
-  font-size: 0.86rem;
-  font-weight: 600;
-  color: var(--text);
-  z-index: 50;
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  animation: toast-in 0.35s var(--ease) forwards;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-@keyframes toast-in {
-  from { opacity: 0; transform: translate(-50%, 14px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
-}
-
 /* ── Animations ─────────────────────────────── */
 
 @keyframes slide-up {
@@ -1191,57 +1028,3 @@ kbd {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 0.9s linear infinite; display: inline-block; }
-
-/* Reveal cascade — staggered card flip when admin reveals */
-@keyframes card-reveal {
-  0%   { transform: rotateY(0deg) scale(1); }
-  50%  { transform: rotateY(90deg) scale(1.04); }
-  100% { transform: rotateY(180deg) scale(1); }
-}
-.player-vote-value.just-revealed {
-  animation: stat-pop 0.5s var(--ease);
-}
-@keyframes stat-pop {
-  0%   { transform: scale(0.6); opacity: 0; }
-  60%  { transform: scale(1.12); opacity: 1; }
-  100% { transform: scale(1); }
-}
-
-/* No-story illustrative state */
-.empty-story-state {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 0 4px;
-}
-.empty-story-state .pulse-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--yellow);
-  box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.55);
-  animation: pulse-dot 1.6s ease-in-out infinite;
-  flex-shrink: 0;
-}
-@keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.55); }
-  50%       { box-shadow: 0 0 0 9px rgba(255, 215, 0, 0); }
-}
-.empty-story-state-text {
-  color: var(--text-dim);
-  font-size: 0.95rem;
-  font-style: italic;
-  font-family: var(--font-display);
-  font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 0;
-}
-
-/* Helper: keyboard hint row */
-.kbd-hint-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  font-size: 0.78rem;
-  color: var(--text-dim);
-  font-weight: 500;
-}
