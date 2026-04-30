@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PokemonCard, { POKEMON_CARDS } from './PokemonCard';
 import PlayerList from './PlayerList';
 import VoteResults from './VoteResults';
@@ -15,6 +15,23 @@ interface RoomProps {
   onLeave: () => void;
 }
 
+const SHORTCUTS: Record<string, string> = {
+  '0': '0',
+  '1': '1',
+  '2': '2',
+  '3': '3',
+  '5': '5',
+  '8': '8',
+  '13': 'G',
+  '21': 'S',
+  '34': 'D',
+  '?': '?',
+  '∞': 'M',
+};
+const KEY_TO_VALUE: Record<string, string> = Object.fromEntries(
+  Object.entries(SHORTCUTS).map(([v, k]) => [k.toLowerCase(), v]),
+);
+
 async function roomAction(path: string, body: Record<string, unknown>) {
   await fetch(path, {
     method: 'POST',
@@ -27,6 +44,7 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
   const [storyInput, setStoryInput] = useState('');
   const [copied, setCopied] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const { players, currentStory, stories } = room;
   const me = players.find((p) => p.id === playerId);
@@ -34,9 +52,11 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
   const revealed = currentStory ? currentStory.revealed : false;
   const hasAnyVote = players.some((p) => p.vote !== null);
   const allVoted = players.length > 0 && players.every((p) => p.vote !== null);
+  const votedCount = players.filter((p) => p.vote !== null).length;
+  const canVote = !revealed && Boolean(currentStory?.name);
 
   function handleVote(value: string) {
-    if (revealed || !currentStory?.name) return;
+    if (!canVote) return;
     roomAction('/api/vote', { roomCode: roomId, playerId, value });
   }
 
@@ -60,10 +80,16 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
     setStoryInput('');
   }
 
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 1800);
+  }
+
   function handleCopyCode() {
     const url = `${window.location.origin}/room/${roomId}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
+      showToast('Invite link copied');
       setTimeout(() => setCopied(false), 2000);
     });
   }
@@ -73,27 +99,56 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
     onLeave();
   }
 
+  // Keyboard shortcuts: number / letter keys cast a vote
+  useEffect(() => {
+    if (!canVote) return;
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const value = KEY_TO_VALUE[e.key.toLowerCase()];
+      if (value) {
+        e.preventDefault();
+        handleVote(value);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canVote, roomId, playerId]);
+
   return (
     <div className="room-page">
       {/* Header */}
       <header className="room-header">
         <div className="room-header-left">
-          <span className="room-pokeball">⚽</span>
+          <span className="room-pokeball" aria-hidden="true">⚪</span>
           <span className="room-name">{room.name}</span>
           <div className="room-code-chip">
             {roomId}
             <button
+              type="button"
               className="copy-btn"
               onClick={handleCopyCode}
-              title={copied ? 'Copied!' : 'Copy room code'}
+              aria-label="Copy invite link"
+              title={copied ? 'Copied!' : 'Copy invite link'}
             >
-              {copied ? '✓' : '📋'}
+              {copied ? '✓' : '⧉'}
             </button>
           </div>
         </div>
         <span className="room-player-count">
           {players.length} trainer{players.length !== 1 ? 's' : ''}
         </span>
+        {currentStory?.name && !revealed && (
+          <span
+            className={`header-progress${allVoted ? ' complete' : ''}`}
+            aria-live="polite"
+          >
+            <span className="header-progress-dot" />
+            {votedCount} / {players.length} voted
+          </span>
+        )}
         <button className="btn btn-ghost btn-sm" onClick={handleLeave}>
           Leave
         </button>
@@ -105,20 +160,23 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
         <div className="room-main">
           {/* Current story */}
           <div className="story-section">
-            <div className="panel-title">Current Story</div>
+            <div className="panel-title">Current story</div>
 
             {currentStory?.name ? (
               <div className="current-story-name">{currentStory.name}</div>
             ) : (
-              <div className="no-story-text">
-                {isAdmin
-                  ? 'Set a story below to begin voting'
-                  : 'Waiting for the admin to set a story…'}
+              <div className="empty-story-state">
+                <span className="pulse-dot" aria-hidden="true" />
+                <span className="empty-story-state-text">
+                  {isAdmin
+                    ? 'Set a story below to begin voting.'
+                    : 'Waiting for the admin to set a story…'}
+                </span>
               </div>
             )}
 
             {isAdmin && (
-              <form className="story-input-row" onSubmit={handleSetStory} style={{ marginTop: 12 }}>
+              <form className="story-input-row" onSubmit={handleSetStory} style={{ marginTop: 14 }}>
                 <input
                   className="form-control"
                   placeholder="Story name or ticket ID (e.g. PROJ-123)"
@@ -126,6 +184,7 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
                   onChange={(e) => setStoryInput(e.target.value)}
                   maxLength={80}
                   autoComplete="off"
+                  aria-label="Story name"
                 />
                 <button type="submit" className="btn btn-yellow" disabled={!storyInput.trim()}>
                   Set
@@ -137,14 +196,20 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
           {/* Voting cards */}
           <div className="voting-section">
             <div className="panel-title">
-              {revealed ? 'Cards Revealed' : myVote ? `Your vote: ${myVote}` : 'Pick Your Card'}
+              {revealed
+                ? 'Cards revealed'
+                : myVote
+                ? <>Your vote: <span className="mono" style={{ color: 'var(--yellow)' }}>{myVote}</span></>
+                : 'Pick your card'}
             </div>
 
             <div className="cards-grid">
-              {POKEMON_CARDS.map((card) => (
+              {POKEMON_CARDS.map((card, idx) => (
                 <PokemonCard
                   key={card.value}
                   card={card}
+                  index={idx}
+                  shortcut={SHORTCUTS[card.value]}
                   selected={myVote === card.value}
                   disabled={revealed || !currentStory?.name}
                   onSelect={handleVote}
@@ -152,15 +217,25 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
               ))}
             </div>
 
+            {canVote && (
+              <div className="kbd-hint-row" aria-hidden="true">
+                <span>Tip — press</span>
+                <kbd>0</kbd><kbd>1</kbd><kbd>…</kbd><kbd>8</kbd>
+                <span>or</span>
+                <kbd>G</kbd><kbd>S</kbd><kbd>D</kbd><kbd>?</kbd><kbd>M</kbd>
+                <span>to vote</span>
+              </div>
+            )}
+
             {!isAdmin && !revealed && currentStory?.name && (
-              <p style={{ marginTop: 12, color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem' }}>
+              <p style={{ marginTop: 12, color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>
                 {myVote
-                  ? 'Vote cast — click another card to change it.'
-                  : 'Click a card to cast your vote!'}
+                  ? 'Vote cast — pick another card to change it.'
+                  : 'Click a card to cast your vote.'}
               </p>
             )}
             {!isAdmin && revealed && (
-              <p style={{ marginTop: 12, color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem' }}>
+              <p style={{ marginTop: 12, color: 'rgba(255,255,255,0.42)', fontSize: '0.9rem' }}>
                 Waiting for the admin to start the next round…
               </p>
             )}
@@ -175,17 +250,17 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
                     disabled={!hasAnyVote}
                     title={!hasAnyVote ? 'No votes yet' : ''}
                   >
-                    🃏 Reveal Cards
-                    {allVoted && players.length > 1 && ' — All voted!'}
+                    Reveal cards
+                    {allVoted && players.length > 1 && ' — all voted'}
                   </button>
                 ) : (
                   <>
                     <button className="btn btn-secondary" onClick={handleReset}>
-                      🔄 Vote Again
+                      Vote again
                     </button>
                     {currentStory?.name && (
                       <button className="btn btn-yellow" onClick={handleSaveStory}>
-                        💾 Save &amp; Next Story
+                        Save &amp; next story
                       </button>
                     )}
                   </>
@@ -201,11 +276,13 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
           {stories && stories.length > 0 && (
             <div className="history-section">
               <button
+                type="button"
                 className="history-toggle"
                 onClick={() => setHistoryOpen((o) => !o)}
+                aria-expanded={historyOpen}
               >
-                📜 Story History ({stories.length})
-                <span className={`history-chevron${historyOpen ? ' open' : ''}`}>▼</span>
+                Story history ({stories.length})
+                <span className={`history-chevron${historyOpen ? ' open' : ''}`} aria-hidden="true">▼</span>
               </button>
               {historyOpen && (
                 <div className="history-list">
@@ -213,7 +290,7 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
                     <div key={i} className="history-item">
                       <span className="history-story-name">{story.name}</span>
                       {story.average !== null && story.average !== undefined && (
-                        <span className="history-avg">avg {story.average}</span>
+                        <span className="history-avg mono">avg {story.average}</span>
                       )}
                     </div>
                   ))}
@@ -233,8 +310,16 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
           {currentStory?.name && !revealed && (
             <div className="panel">
               <div className="panel-title">Progress</div>
-              <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                {players.filter((p) => p.vote !== null).length} / {players.length} voted
+              <div
+                style={{
+                  fontSize: '0.92rem',
+                  color: 'rgba(255,255,255,0.65)',
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {votedCount} / {players.length} voted
               </div>
               <div
                 style={{
@@ -244,16 +329,18 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
                   background: 'rgba(255,255,255,0.08)',
                   overflow: 'hidden',
                 }}
+                role="progressbar"
+                aria-valuenow={votedCount}
+                aria-valuemin={0}
+                aria-valuemax={players.length}
               >
                 <div
                   style={{
                     height: '100%',
                     borderRadius: 4,
-                    background: 'var(--pokemon-green)',
-                    width: `${players.length > 0
-                      ? (players.filter((p) => p.vote !== null).length / players.length) * 100
-                      : 0}%`,
-                    transition: 'width 0.4s ease',
+                    background: allVoted ? '#22D37A' : 'var(--yellow)',
+                    width: `${players.length > 0 ? (votedCount / players.length) * 100 : 0}%`,
+                    transition: 'width 0.4s ease, background 0.4s ease',
                   }}
                 />
               </div>
@@ -261,6 +348,13 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
           )}
         </div>
       </div>
+
+      {toast && (
+        <div className="toast" role="status">
+          <span aria-hidden="true">✓</span>
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

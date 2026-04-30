@@ -29,19 +29,35 @@ interface PokemonCardProps {
   selected: boolean;
   disabled: boolean;
   onSelect: (value: string) => void;
+  shortcut?: string;
+  index?: number;
 }
 
-export default function PokemonCard({ card, selected, disabled, onSelect }: PokemonCardProps) {
+export default function PokemonCard({
+  card,
+  selected,
+  disabled,
+  onSelect,
+  shortcut,
+  index = 0,
+}: PokemonCardProps) {
   function handleClick() {
     if (!disabled && onSelect) onSelect(card.value);
   }
 
   return (
-    <div
+    <button
+      type="button"
       className={`pokemon-card-wrapper${selected ? ' flipped selected' : ''}${disabled ? ' disabled' : ''}`}
-      style={{ '--card-color': card.color } as React.CSSProperties}
+      style={{
+        '--card-color': card.color,
+        animationDelay: `${index * 0.04}s`,
+      } as React.CSSProperties}
       onClick={handleClick}
-      title={`${card.name} — ${card.label} points`}
+      disabled={disabled}
+      aria-pressed={selected}
+      aria-label={`${card.name} — ${card.label} points${shortcut ? ` (key ${shortcut})` : ''}`}
+      title={`${card.name} — ${card.label} points${shortcut ? ` · press ${shortcut}` : ''}`}
     >
       <div className="pokemon-card-inner">
         {/* Back face — Pokeball */}
@@ -57,15 +73,16 @@ export default function PokemonCard({ card, selected, disabled, onSelect }: Poke
           }}
         >
           <span className="card-value-badge">{card.label}</span>
+          {shortcut && <span className="card-kbd-hint">{shortcut}</span>}
           <img
             className="card-sprite"
             src={getSpriteUrl(card.id)}
-            alt={card.name}
+            alt=""
             loading="lazy"
           />
           <span className="card-pokemon-name">{card.name}</span>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
