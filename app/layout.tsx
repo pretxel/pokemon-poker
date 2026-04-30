@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { Syne, Manrope } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import './globals.css';
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 const syne = Syne({
   subsets: ['latin'],
@@ -252,6 +255,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }}
         />
         <Analytics />
+        {GA_ID ? <GoogleAnalytics gaId={GA_ID} /> : null}
       </body>
     </html>
   );
