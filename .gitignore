@@ -217,6 +217,7 @@ dist
 **/*.back.*
 
 node_modules
+generated/prisma/
 
 *.sublime*
 

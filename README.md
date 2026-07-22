@@ -4,9 +4,9 @@ A real-time scrum planning poker app where team members estimate stories using P
 
 ## Tech Stack
 
-- **Frontend**: Next.js 16, React 18, TypeScript
+- **Frontend**: Next.js 16, React 19, TypeScript
 - **Real-time**: Socket.io 4 (WebSocket communication)
-- **Database**: PostgreSQL with Prisma 6 ORM
+- **Database**: PostgreSQL with Prisma 7 ORM
 - **Runtime**: Custom Node.js HTTP server (`server.ts`) serving both Next.js pages and Socket.io connections
 - **Sprites**: Loaded from [PokeAPI](https://github.com/PokeAPI/sprites)
 
@@ -14,7 +14,7 @@ A real-time scrum planning poker app where team members estimate stories using P
 
 ### Prerequisites
 
-- Node.js (v18+)
+- Node.js (v20.19+)
 - PostgreSQL
 
 ### Setup
