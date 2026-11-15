@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import PokemonCard, { POKEMON_CARDS } from './PokemonCard';
-import PlayerList from './PlayerList';
-import VoteResults from './VoteResults';
+import { useEffect, useRef, useState } from 'react';
+import Hand from './Hand';
+import Table from './Table';
+import StoryBar from './StoryBar';
+import HistoryDrawer from './HistoryDrawer';
+import Icon from './Icon';
 import type { RoomState } from '@/types';
 
 interface RoomProps {
@@ -15,252 +17,178 @@ interface RoomProps {
   onLeave: () => void;
 }
 
-async function roomAction(path: string, body: Record<string, unknown>) {
-  await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+type ActionResult = { ok: true } | { ok: false; error: string };
+
+async function roomAction(path: string, body: Record<string, unknown>): Promise<ActionResult> {
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return { ok: true };
+    const data = await res.json().catch(() => ({}));
+    return { ok: false, error: data.error ?? `Request failed (${res.status})` };
+  } catch {
+    return { ok: false, error: 'network' };
+  }
 }
 
+type Status = { text: string; tone: 'info' | 'error' } | null;
+
+const MESSAGES = {
+  vote: "Couldn't save your vote. Check your connection and pick again.",
+  story: "Couldn't set the story. Try again.",
+  reveal: "Couldn't reveal the cards. Try again.",
+  reset: "Couldn't restart the vote. Try again.",
+  next: "Couldn't save the story. Try again.",
+  leave: "Couldn't leave the room. Try again.",
+  copy: "Couldn't copy the link. Copy it from the address bar instead.",
+};
+
 export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomProps) {
-  const [storyInput, setStoryInput] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<Status>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // Optimistic vote, valid only for the room snapshot it was made against.
+  const [pending, setPending] = useState<{ value: string; room: RoomState } | null>(null);
+  const historyButton = useRef<HTMLButtonElement>(null);
+  const menuToggle = useRef<HTMLButtonElement>(null);
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { players, currentStory, stories } = room;
   const me = players.find((p) => p.id === playerId);
-  const myVote = me ? me.vote : null;
-  const revealed = currentStory ? currentStory.revealed : false;
-  const hasAnyVote = players.some((p) => p.vote !== null);
-  const allVoted = players.length > 0 && players.every((p) => p.vote !== null);
+  const serverVote = me ? me.vote : null;
+  const myVote = pending && pending.room === room ? pending.value : serverVote;
+  const revealed = currentStory?.revealed ?? false;
+  const hasStory = Boolean(currentStory?.name);
 
-  function handleVote(value: string) {
-    if (revealed || !currentStory?.name) return;
-    roomAction('/api/vote', { roomCode: roomId, playerId, value });
+  useEffect(() => () => { if (statusTimer.current) clearTimeout(statusTimer.current); }, []);
+
+  function showStatus(next: Status, clearAfterMs?: number) {
+    if (statusTimer.current) clearTimeout(statusTimer.current);
+    setStatus(next);
+    if (clearAfterMs) statusTimer.current = setTimeout(() => setStatus(null), clearAfterMs);
   }
 
-  function handleSetStory(e: React.FormEvent) {
-    e.preventDefault();
-    if (!storyInput.trim()) return;
-    roomAction('/api/set-story', { roomCode: roomId, playerId, storyName: storyInput.trim() });
-    setStoryInput('');
+  async function run(path: string, body: Record<string, unknown>, failure: string) {
+    const result = await roomAction(path, { roomCode: roomId, playerId, ...body });
+    if (result.ok) {
+      setStatus((s) => (s?.tone === 'error' ? null : s));
+    } else {
+      showStatus({ text: failure, tone: 'error' });
+    }
+    return result.ok;
   }
 
-  function handleReveal() {
-    roomAction('/api/reveal-votes', { roomCode: roomId, playerId });
+  async function handleVote(value: string) {
+    if (revealed || !hasStory) return;
+    setPending({ value, room });
+    const ok = await run('/api/vote', { value }, MESSAGES.vote);
+    if (!ok) setPending(null);
   }
 
-  function handleReset() {
-    roomAction('/api/reset-round', { roomCode: roomId, playerId });
+  function handleSetStory(storyName: string) {
+    return run('/api/set-story', { storyName }, MESSAGES.story);
   }
 
-  function handleSaveStory() {
-    roomAction('/api/save-story', { roomCode: roomId, playerId });
-    setStoryInput('');
-  }
-
-  function handleCopyCode() {
+  function handleCopyInvite() {
+    setMenuOpen(false);
     const url = `${window.location.origin}/room/${roomId}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard.writeText(url).then(
+      () => showStatus({ text: 'Link copied', tone: 'info' }, 2000),
+      () => showStatus({ text: MESSAGES.copy, tone: 'error' }),
+    );
   }
 
   async function handleLeave() {
-    await roomAction('/api/leave-room', { roomCode: roomId, playerId });
-    onLeave();
+    setMenuOpen(false);
+    const ok = await run('/api/leave-room', {}, MESSAGES.leave);
+    if (ok) onLeave();
   }
 
+  function handleHistoryClosed() {
+    setHistoryOpen(false);
+    // On narrow screens the History button lives in the collapsed menu; focus the toggle instead.
+    const target = historyButton.current?.offsetParent ? historyButton.current : menuToggle.current;
+    target?.focus();
+  }
+
+  let hint: string;
+  if (!hasStory) hint = 'Your cards unlock when a story is set.';
+  else if (revealed) hint = 'Cards are revealed for this story.';
+  else if (myVote) hint = 'Your card is down. Pick another to change it.';
+  else hint = 'Pick a card to vote.';
+
   return (
-    <div className="room-page">
-      {/* Header */}
+    <div className="room">
       <header className="room-header">
-        <div className="room-header-left">
-          <span className="room-pokeball">⚽</span>
-          <span className="room-name">{room.name}</span>
-          <div className="room-code-chip">
-            {roomId}
-            <button
-              className="copy-btn"
-              onClick={handleCopyCode}
-              title={copied ? 'Copied!' : 'Copy room code'}
-            >
-              {copied ? '✓' : '📋'}
-            </button>
-          </div>
+        <div className="room-header__title">
+          <h1 className="room-header__name">{room.name}</h1>
+          <span className="room-code"><span className="visually-hidden">Room code </span>{roomId}</span>
         </div>
-        <span className="room-player-count">
-          {players.length} trainer{players.length !== 1 ? 's' : ''}
-        </span>
-        <button className="btn btn-ghost btn-sm" onClick={handleLeave}>
-          Leave
+
+        <button
+          ref={menuToggle}
+          type="button"
+          className="btn btn--ghost btn--sm room-header__menu-toggle"
+          aria-expanded={menuOpen}
+          aria-controls="room-actions"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <Icon name={menuOpen ? 'close' : 'menu'} size={18} /> Menu
         </button>
+
+        <div
+          id="room-actions"
+          className={`room-header__actions${menuOpen ? ' is-open' : ''}`}
+          onKeyDown={(e) => { if (e.key === 'Escape') setMenuOpen(false); }}
+        >
+          <button type="button" className="btn btn--ghost btn--sm" onClick={handleCopyInvite}>
+            <Icon name="copy" size={18} /> Copy invite link
+          </button>
+          <button
+            ref={historyButton}
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => { setMenuOpen(false); setHistoryOpen(true); }}
+          >
+            <Icon name="history" size={18} /> History{stories.length > 0 ? ` (${stories.length})` : ''}
+          </button>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={handleLeave}>
+            <Icon name="leave" size={18} /> Leave
+          </button>
+        </div>
       </header>
 
-      {/* Body */}
-      <div className="room-body">
-        {/* Main column */}
-        <div className="room-main">
-          {/* Current story */}
-          <div className="story-section">
-            <div className="panel-title">Current Story</div>
+      <StoryBar story={currentStory?.name || null} isHost={isAdmin} onSetStory={handleSetStory} />
 
-            {currentStory?.name ? (
-              <div className="current-story-name">{currentStory.name}</div>
-            ) : (
-              <div className="no-story-text">
-                {isAdmin
-                  ? 'Set a story below to begin voting'
-                  : 'Waiting for the admin to set a story…'}
-              </div>
-            )}
+      <p className={`status-line${status?.tone === 'error' ? ' status-line--error' : ''}`} role="status">
+        {status?.text}
+      </p>
 
-            {isAdmin && (
-              <form className="story-input-row" onSubmit={handleSetStory} style={{ marginTop: 12 }}>
-                <input
-                  className="form-control"
-                  placeholder="Story name or ticket ID (e.g. PROJ-123)"
-                  value={storyInput}
-                  onChange={(e) => setStoryInput(e.target.value)}
-                  maxLength={80}
-                  autoComplete="off"
-                />
-                <button type="submit" className="btn btn-yellow" disabled={!storyInput.trim()}>
-                  Set
-                </button>
-              </form>
-            )}
-          </div>
+      <Table
+        players={players}
+        playerId={playerId}
+        isHost={isAdmin}
+        currentStory={currentStory}
+        onReveal={() => run('/api/reveal-votes', {}, MESSAGES.reveal)}
+        onVoteAgain={() => run('/api/reset-round', {}, MESSAGES.reset)}
+        onNextStory={() => run('/api/save-story', {}, MESSAGES.next)}
+      />
 
-          {/* Voting cards */}
-          <div className="voting-section">
-            <div className="panel-title">
-              {revealed ? 'Cards Revealed' : myVote ? `Your vote: ${myVote}` : 'Pick Your Card'}
-            </div>
+      <Hand
+        selected={myVote}
+        disabled={revealed || !hasStory}
+        hint={hint}
+        onSelect={handleVote}
+      />
 
-            <div className="cards-grid">
-              {POKEMON_CARDS.map((card) => (
-                <PokemonCard
-                  key={card.value}
-                  card={card}
-                  selected={myVote === card.value}
-                  disabled={revealed || !currentStory?.name}
-                  onSelect={handleVote}
-                />
-              ))}
-            </div>
-
-            {!isAdmin && !revealed && currentStory?.name && (
-              <p style={{ marginTop: 12, color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem' }}>
-                {myVote
-                  ? 'Vote cast — click another card to change it.'
-                  : 'Click a card to cast your vote!'}
-              </p>
-            )}
-            {!isAdmin && revealed && (
-              <p style={{ marginTop: 12, color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem' }}>
-                Waiting for the admin to start the next round…
-              </p>
-            )}
-
-            {/* Admin controls */}
-            {isAdmin && (
-              <div className="voting-actions">
-                {!revealed ? (
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleReveal}
-                    disabled={!hasAnyVote}
-                    title={!hasAnyVote ? 'No votes yet' : ''}
-                  >
-                    🃏 Reveal Cards
-                    {allVoted && players.length > 1 && ' — All voted!'}
-                  </button>
-                ) : (
-                  <>
-                    <button className="btn btn-secondary" onClick={handleReset}>
-                      🔄 Vote Again
-                    </button>
-                    {currentStory?.name && (
-                      <button className="btn btn-yellow" onClick={handleSaveStory}>
-                        💾 Save &amp; Next Story
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Results */}
-          {revealed && <VoteResults players={players} currentStory={currentStory} />}
-
-          {/* Story history */}
-          {stories && stories.length > 0 && (
-            <div className="history-section">
-              <button
-                className="history-toggle"
-                onClick={() => setHistoryOpen((o) => !o)}
-              >
-                📜 Story History ({stories.length})
-                <span className={`history-chevron${historyOpen ? ' open' : ''}`}>▼</span>
-              </button>
-              {historyOpen && (
-                <div className="history-list">
-                  {[...stories].reverse().map((story, i) => (
-                    <div key={i} className="history-item">
-                      <span className="history-story-name">{story.name}</span>
-                      {story.average !== null && story.average !== undefined && (
-                        <span className="history-avg">avg {story.average}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="room-sidebar">
-          <div className="panel">
-            <div className="panel-title">Trainers ({players.length})</div>
-            <PlayerList players={players} playerId={playerId} revealed={revealed} />
-          </div>
-
-          {currentStory?.name && !revealed && (
-            <div className="panel">
-              <div className="panel-title">Progress</div>
-              <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
-                {players.filter((p) => p.vote !== null).length} / {players.length} voted
-              </div>
-              <div
-                style={{
-                  marginTop: 10,
-                  height: 8,
-                  borderRadius: 4,
-                  background: 'rgba(255,255,255,0.08)',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    height: '100%',
-                    borderRadius: 4,
-                    background: 'var(--pokemon-green)',
-                    width: `${players.length > 0
-                      ? (players.filter((p) => p.vote !== null).length / players.length) * 100
-                      : 0}%`,
-                    transition: 'width 0.4s ease',
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <HistoryDrawer
+        open={historyOpen}
+        stories={stories ?? []}
+        onClose={handleHistoryClosed}
+      />
     </div>
   );
 }

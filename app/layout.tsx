@@ -1,21 +1,21 @@
 import type { Metadata, Viewport } from 'next';
-import { Syne, Manrope } from 'next/font/google';
+import { Bricolage_Grotesque, Atkinson_Hyperlegible } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import './globals.css';
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
-const syne = Syne({
+const display = Bricolage_Grotesque({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  axes: ['opsz', 'wdth'],
   variable: '--font-display',
   display: 'swap',
 });
 
-const manrope = Manrope({
+const body = Atkinson_Hyperlegible({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '700'],
   variable: '--font-body',
   display: 'swap',
 });
@@ -96,8 +96,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#09090f',
-  colorScheme: 'dark',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#EAF2F8' },
+    { media: '(prefers-color-scheme: dark)', color: '#111A24' },
+  ],
+  colorScheme: 'light dark',
   width: 'device-width',
   initialScale: 1,
 };
@@ -153,7 +156,7 @@ const faqLd = {
       name: 'How does Pokemon Poker work?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'The admin creates a room and shares a 6-character code. Players join, the admin sets a story, players vote with Pokémon cards, and the admin reveals all votes at once.',
+        text: 'The host creates a room and shares a 6-character code. Players join, the host sets a story, players vote with Pokémon cards, and the host reveals all votes at once.',
       },
     },
     {
@@ -197,50 +200,49 @@ const howToLd = {
       '@type': 'HowToStep',
       position: 1,
       name: 'Create a room',
-      text: 'Open the home page, enter your display name and a room name, then click Create Room. You become the admin.',
+      text: 'Open the home page, enter your display name and a room name, then click Start a room. You become the host.',
       url: `${SITE_URL}/#create`,
     },
     {
       '@type': 'HowToStep',
       position: 2,
       name: 'Share the room code',
-      text: 'Copy the 6-character room code or the room URL and send it to your team.',
+      text: 'Click Copy invite link and send it to your team, or share the 6-character room code.',
     },
     {
       '@type': 'HowToStep',
       position: 3,
       name: 'Set a story',
-      text: 'As admin, type the story name or ticket ID and submit it.',
+      text: 'As host, type the story name or ticket ID and submit it.',
     },
     {
       '@type': 'HowToStep',
       position: 4,
       name: 'Players vote',
-      text: 'Each player picks one Pokémon card representing their effort estimate. Votes stay hidden until the admin reveals.',
+      text: 'Each player picks one Pokémon card representing their effort estimate. Votes stay hidden until the host reveals.',
     },
     {
       '@type': 'HowToStep',
       position: 5,
       name: 'Reveal and discuss',
-      text: 'The admin clicks Reveal Cards. The app shows the average, min, max, distribution, and consensus banner if everyone agrees.',
+      text: 'The host clicks Reveal cards. Every card flips at once, and the app suggests the closest estimate, shows the spread of votes, and calls out consensus.',
     },
     {
       '@type': 'HowToStep',
       position: 6,
       name: 'Save and continue',
-      text: 'Click Save & Next Story to record the round and start the next one, or Vote Again to re-cast on the same story.',
+      text: 'Click Next story to record the round and start the next one, or Vote again to re-cast on the same story.',
     },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${syne.variable} ${manrope.variable}`}>
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
         {children}
         <footer className="site-footer">
-          Made with <span className="heart" aria-label="love" role="img">❤️</span>
-          <span className="sep">|</span>2026<span className="sep">|</span>pretxel
+          Made with love by pretxel, 2026
         </footer>
         <script
           type="application/ld+json"

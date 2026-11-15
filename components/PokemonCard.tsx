@@ -1,5 +1,3 @@
-'use client';
-
 import type { PokemonCardDef } from '@/types';
 
 export const POKEMON_CARDS: PokemonCardDef[] = [
@@ -24,48 +22,49 @@ export function getCardByValue(value: string): PokemonCardDef | null {
   return POKEMON_CARDS.find((c) => c.value === value) ?? null;
 }
 
-interface PokemonCardProps {
-  card: PokemonCardDef;
-  selected: boolean;
-  disabled: boolean;
-  onSelect: (value: string) => void;
+export function cardLabel(card: PokemonCardDef): string {
+  return `${card.name}, ${card.label} ${card.label === '1' ? 'point' : 'points'}`;
 }
 
-export default function PokemonCard({ card, selected, disabled, onSelect }: PokemonCardProps) {
-  function handleClick() {
-    if (!disabled && onSelect) onSelect(card.value);
-  }
+export type CardSize = 'hand' | 'seat' | 'hero' | 'result';
 
+const SPRITE_PX: Record<CardSize, number> = { hand: 96, seat: 48, hero: 96, result: 96 };
+
+interface PokemonCardProps {
+  card: PokemonCardDef | null;
+  size?: CardSize;
+  /** Show the card back. Toggling this animates a flip. */
+  faceDown?: boolean;
+  /** Set when the card is purely decorative or labelled by its container. */
+  decorative?: boolean;
+}
+
+/**
+ * Presentational card face. Interactive wrappers (Hand) supply the button
+ * semantics; this component only draws the card.
+ */
+export default function PokemonCard({ card, size = 'hand', faceDown = false, decorative = true }: PokemonCardProps) {
+  const px = SPRITE_PX[size];
   return (
-    <div
-      className={`pokemon-card-wrapper${selected ? ' flipped selected' : ''}${disabled ? ' disabled' : ''}`}
-      style={{ '--card-color': card.color } as React.CSSProperties}
-      onClick={handleClick}
-      title={`${card.name} — ${card.label} points`}
+    <span
+      className={`pcard pcard--${size}${faceDown ? ' is-face-down' : ''}`}
+      style={card ? ({ '--card-color': card.color } as React.CSSProperties) : undefined}
+      aria-hidden={decorative ? true : undefined}
     >
-      <div className="pokemon-card-inner">
-        {/* Back face — Pokeball */}
-        <div className="pokemon-card-face pokemon-card-back">
-          <div className="pokeball-center" />
-        </div>
-
-        {/* Front face — Pokemon */}
-        <div
-          className="pokemon-card-face pokemon-card-front"
-          style={{
-            background: `linear-gradient(145deg, ${card.color}44 0%, ${card.color}18 100%)`,
-          }}
-        >
-          <span className="card-value-badge">{card.label}</span>
-          <img
-            className="card-sprite"
-            src={getSpriteUrl(card.id)}
-            alt={card.name}
-            loading="lazy"
-          />
-          <span className="card-pokemon-name">{card.name}</span>
-        </div>
-      </div>
-    </div>
+      <span className="pcard__inner">
+        <span className="pcard__face pcard__front">
+          {card && (
+            <>
+              <span className="pcard__value">{card.label}</span>
+              <span className="pcard__art">
+                <img src={getSpriteUrl(card.id)} alt="" width={px} height={px} loading="lazy" />
+              </span>
+              <span className="pcard__name">{card.name}</span>
+            </>
+          )}
+        </span>
+        <span className="pcard__face pcard__back" />
+      </span>
+    </span>
   );
 }

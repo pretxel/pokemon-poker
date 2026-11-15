@@ -1,220 +1,206 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import PokemonCard, { POKEMON_CARDS } from './PokemonCard';
 import type { RoomState } from '@/types';
 
-function PokeballSVG() {
-  return (
-    <svg viewBox="0 0 100 100" className="home-pokeball-svg">
-      <circle cx="50" cy="50" r="48" fill="none" stroke="#111" strokeWidth="3" />
-      <path d="M2 50 Q2 2 50 2 Q98 2 98 50 Z" fill="#CC0000" />
-      <path d="M2 50 Q2 98 50 98 Q98 98 98 50 Z" fill="white" />
-      <rect x="2" y="46" width="96" height="8" fill="#111" />
-      <circle cx="50" cy="50" r="13" fill="white" stroke="#111" strokeWidth="3" />
-      <circle cx="50" cy="50" r="7" fill="#e8e8e8" />
-    </svg>
-  );
-}
+const HERO_VALUES = ['1', '3', '5', '8', '13'];
+const HERO_LIFT = [14, 4, 0, 4, 14];
+
+const NETWORK_ERROR = "Couldn't reach the server. Check your connection and try again.";
+
+type Joined = { roomId: string; playerId: string; room: RoomState };
+type FormKey = 'create' | 'join';
 
 interface HomeProps {
-  onJoined: (data: { roomId: string; playerId: string; room: RoomState }) => void;
+  onJoined: (data: Joined) => void;
   initialRoomId?: string;
 }
 
+function DeckFan() {
+  const cards = HERO_VALUES.map((v) => POKEMON_CARDS.find((c) => c.value === v)!);
+  return (
+    <div className="fan" aria-hidden="true">
+      {cards.map((card, i) => (
+        <span key={card.value} style={{ '--i': i, '--lift': HERO_LIFT[i] } as React.CSSProperties}>
+          <PokemonCard card={card} size="hero" />
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function Home({ onJoined, initialRoomId }: HomeProps) {
-  const [createName, setCreateName] = useState('');
-  const [createRoom, setCreateRoom] = useState('');
-  const [joinName, setJoinName] = useState('');
-  const [joinCode, setJoinCode] = useState(initialRoomId ?? '');
-  const [loading, setLoading] = useState<'create' | 'join' | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [inviteMode, setInviteMode] = useState(Boolean(initialRoomId));
+  const [name, setName] = useState('');
+  const [roomName, setRoomName] = useState('');
+  const [code, setCode] = useState(initialRoomId ?? '');
+  const [loading, setLoading] = useState<FormKey | null>(null);
+  const [error, setError] = useState<{ form: FormKey; text: string } | null>(null);
+  const codeInput = useRef<HTMLInputElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!createName.trim() || !createRoom.trim()) return;
-    setLoading('create');
+  const trimmedName = name.trim();
+
+  function clearErrorFor(form: FormKey | 'name') {
+    if (error && (form === 'name' || error.form === form)) setError(null);
+  }
+
+  async function submit(form: FormKey, path: string, body: Record<string, string>) {
+    if (!trimmedName) {
+      nameInput.current?.focus();
+      return;
+    }
+    setLoading(form);
     setError(null);
     try {
-      const res = await fetch('/api/create-room', {
+      const res = await fetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomName: createRoom.trim(), playerName: createName.trim() }),
+        body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'Failed to create room.'); return; }
-      onJoined(data);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (form === 'join' && res.status === 404) {
+          setError({ form, text: `No room with code ${body.roomId}. Check the code with your host.` });
+          codeInput.current?.focus();
+        } else {
+          setError({ form, text: data.error ?? NETWORK_ERROR });
+        }
+        return;
+      }
+      onJoined(data as Joined);
     } catch {
-      setError('Network error. Please try again.');
+      setError({ form, text: NETWORK_ERROR });
     } finally {
       setLoading(null);
     }
   }
 
-  async function handleJoin(e: React.FormEvent) {
+  function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!joinName.trim() || !joinCode.trim()) return;
-    setLoading('join');
-    setError(null);
-    try {
-      const res = await fetch('/api/join-room', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: joinCode.trim().toUpperCase(), playerName: joinName.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'Failed to join room.'); return; }
-      onJoined(data);
-    } catch {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(null);
-    }
+    if (!roomName.trim()) return;
+    submit('create', '/api/create-room', { roomName: roomName.trim(), playerName: trimmedName });
   }
+
+  function handleJoin(e: React.FormEvent) {
+    e.preventDefault();
+    if (code.length !== 6) return;
+    submit('join', '/api/join-room', { roomId: code.toUpperCase(), playerName: trimmedName });
+  }
+
+  const nameField = (
+    <div className="field">
+      <label htmlFor="player-name" className="field__label">Your name</label>
+      <input
+        id="player-name"
+        ref={nameInput}
+        className="input"
+        placeholder="Ash"
+        value={name}
+        onChange={(e) => { setName(e.target.value); clearErrorFor('name'); }}
+        maxLength={24}
+        autoComplete="nickname"
+        required
+      />
+    </div>
+  );
+
+  const joinError = error?.form === 'join' && (
+    <p className="form-error" role="alert" id="join-error">{error.text}</p>
+  );
 
   return (
-    <div className="home-page">
-      <div className="home-header">
-        <div className="home-logo">
-          <PokeballSVG />
-          <h1 className="home-title">Pokemon Poker</h1>
-        </div>
-        <p className="home-subtitle">Scrum planning estimation with your favorite Pokemon</p>
+    <main className="lobby">
+      <div className="lobby__intro">
+        <DeckFan />
+        <h1 className="lobby__title">Pokemon Poker</h1>
+        <p className="lobby__lede">Estimate stories with your team. Everyone picks a card, then you all reveal at once.</p>
       </div>
 
-      {error && (
-        <div
-          className="alert alert-error fade-in"
-          style={{ marginBottom: 20, maxWidth: 700, width: '100%' }}
-        >
-          <span>⚠️</span>
-          <span style={{ flex: 1 }}>{error}</span>
+      {inviteMode ? (
+        <section className="lobby__panel" aria-labelledby="join-heading">
+          <h2 id="join-heading" className="lobby__heading">Join room {code}</h2>
+          <form className="lobby__form" onSubmit={handleJoin}>
+            {nameField}
+            {joinError}
+            <button
+              type="submit"
+              className="btn btn--primary"
+              disabled={loading === 'join' || !trimmedName}
+            >
+              {loading === 'join' ? 'Joining…' : `Join room ${code}`}
+            </button>
+          </form>
+          <hr className="lobby__divider" />
           <button
-            onClick={() => setError(null)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'inherit',
-              fontSize: '1.1rem',
-              lineHeight: 1,
-              padding: '0 2px',
-            }}
+            type="button"
+            className="btn btn--link"
+            onClick={() => { setInviteMode(false); setCode(''); setError(null); }}
           >
-            ×
+            Start a different room instead
           </button>
-        </div>
-      )}
+        </section>
+      ) : (
+        <section className="lobby__panel" aria-labelledby="start-heading">
+          <h2 id="start-heading" className="lobby__heading">Start a room</h2>
+          {nameField}
 
-      <div className="home-grid">
-        {/* Create Room Panel */}
-        <div className="home-panel">
-          <div className="home-panel-title">
-            <span className="home-panel-icon">✨</span>
-            Create Room
-          </div>
-          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div className="form-group">
-              <label htmlFor="create-name">Your Name</label>
+          <form className="lobby__form" onSubmit={handleCreate} id="create">
+            <div className="field">
+              <label htmlFor="room-name" className="field__label">Room name</label>
               <input
-                id="create-name"
-                className="form-control"
-                placeholder="Ash Ketchum"
-                value={createName}
-                onChange={(e) => setCreateName(e.target.value)}
-                maxLength={24}
-                autoComplete="off"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="create-room">Room Name</label>
-              <input
-                id="create-room"
-                className="form-control"
-                placeholder="Sprint 42 Planning"
-                value={createRoom}
-                onChange={(e) => setCreateRoom(e.target.value)}
+                id="room-name"
+                className="input"
+                placeholder="Sprint 42 planning"
+                value={roomName}
+                onChange={(e) => { setRoomName(e.target.value); clearErrorFor('create'); }}
                 maxLength={40}
                 autoComplete="off"
                 required
               />
             </div>
+            {error?.form === 'create' && <p className="form-error" role="alert">{error.text}</p>}
             <button
               type="submit"
-              className="btn btn-primary btn-full btn-lg"
-              disabled={loading === 'create' || !createName.trim() || !createRoom.trim()}
+              className="btn btn--primary"
+              disabled={loading === 'create' || !trimmedName || !roomName.trim()}
             >
-              {loading === 'create' ? (
-                <><span className="spin" style={{ display: 'inline-block' }}>⚽</span>Creating…</>
-              ) : (
-                <>🏠 Create Room</>
-              )}
+              {loading === 'create' ? 'Starting…' : 'Start a room'}
             </button>
           </form>
-        </div>
 
-        {/* Join Room Panel */}
-        <div className="home-panel">
-          <div className="home-panel-title">
-            <span className="home-panel-icon">🚪</span>
-            Join Room
-          </div>
-          <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div className="form-group">
-              <label htmlFor="join-name">Your Name</label>
-              <input
-                id="join-name"
-                className="form-control"
-                placeholder="Misty"
-                value={joinName}
-                onChange={(e) => setJoinName(e.target.value)}
-                maxLength={24}
-                autoComplete="off"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="join-code">Room Code</label>
+          <hr className="lobby__divider" />
+
+          <form className="lobby__form" onSubmit={handleJoin}>
+            <label htmlFor="join-code" className="lobby__subheading">Have a code?</label>
+            <div className="lobby__join-row">
               <input
                 id="join-code"
-                className="form-control code-input"
+                ref={codeInput}
+                className="input input--code"
                 placeholder="ABC123"
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                value={code}
+                onChange={(e) => { setCode(e.target.value.toUpperCase()); clearErrorFor('join'); }}
                 maxLength={6}
                 autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                aria-describedby={error?.form === 'join' ? 'join-error' : undefined}
                 required
               />
+              <button
+                type="submit"
+                className="btn"
+                disabled={loading === 'join' || !trimmedName || code.length !== 6}
+              >
+                {loading === 'join' ? 'Joining…' : 'Join'}
+              </button>
             </div>
-            <button
-              type="submit"
-              className="btn btn-secondary btn-full btn-lg"
-              disabled={loading === 'join' || !joinName.trim() || joinCode.length < 6}
-            >
-              {loading === 'join' ? (
-                <><span className="spin" style={{ display: 'inline-block' }}>⚽</span>Joining…</>
-              ) : (
-                <>🚶 Join Room</>
-              )}
-            </button>
+            {joinError}
           </form>
-        </div>
-      </div>
-
-      <div
-        style={{
-          marginTop: 40,
-          maxWidth: 700,
-          width: '100%',
-          textAlign: 'center',
-          color: 'rgba(255,255,255,0.28)',
-          fontSize: '0.82rem',
-          fontWeight: 600,
-          letterSpacing: '0.03em',
-        }}
-      >
-        Create a room · Share the code · Pick your Pokemon · Reveal together
-      </div>
-    </div>
+        </section>
+      )}
+    </main>
   );
 }
