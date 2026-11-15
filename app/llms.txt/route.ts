@@ -16,12 +16,12 @@ Pokemon Poker is a web app for agile and Scrum teams that need to estimate story
 
 ## Core concepts
 
-- **Room** — a temporary planning session identified by a 6-character code. Created by the first user (the admin).
-- **Player / Trainer** — a participant in a room. The room creator is the admin.
-- **Story** — the unit of work being estimated. The admin sets a story name; players then vote.
-- **Vote** — a single Pokémon card chosen by a player as their estimate. Hidden from other players until the admin reveals.
-- **Reveal** — the admin flips all votes face-up; statistics (average, min, max, distribution, consensus) are shown.
-- **Round** — set story → players vote → admin reveals → admin saves & moves to next story (or resets for a re-vote).
+- **Room** — a temporary planning session identified by a 6-character code. Created by the first user (the host).
+- **Player / Trainer** — a participant in a room. The room creator is the host.
+- **Story** — the unit of work being estimated. The host sets a story name; players then vote.
+- **Vote** — a single Pokémon card chosen by a player as their estimate. Not shown to other players until the host reveals.
+- **Reveal** — the host flips all cards face-up at once; the app shows a suggested estimate (closest card to the average), the spread of votes, a distribution by card, and consensus when everyone agrees.
+- **Round** — set story → players vote → host reveals → host clicks Next story (or Vote again for a re-vote).
 
 ## Card → point values
 

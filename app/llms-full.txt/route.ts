@@ -38,21 +38,21 @@ The Pokémon mapping makes votes easier to remember and reduces fatigue compared
 
 ## How a session works
 
-1. **Create a room.** First user enters a display name and a room name. Server generates a 6-character alphanumeric uppercase code. That user becomes the **admin**.
-2. **Share the code.** Admin shares either the code or the direct URL \`${SITE_URL}/room/{ROOM_CODE}\` with teammates.
-3. **Teammates join.** Each enters their display name and the room code. They become **players** (or "trainers").
-4. **Admin sets a story.** Admin types a story name or ticket ID (e.g. \`PROJ-123\`).
-5. **Players vote.** Each player picks one Pokémon card. Their vote is recorded but hidden from other players. Players may change their vote at any time before reveal.
-6. **Admin reveals.** Admin clicks "Reveal cards". All votes flip face-up simultaneously. The UI shows:
-   - **Average** of numeric votes
-   - **Min** and **Max**
-   - **Distribution** bar chart with voter names
-   - **Closest Pokémon** to the average (rounded)
-   - **Consensus banner** when every vote matches
-7. **Next round.** Admin either:
-   - **Vote again** — clear all votes, keep the same story (use after a discussion).
-   - **Save & next story** — append the round to history (with average), then accept a new story name.
-8. **Leave.** Players can leave at any time. If the admin leaves, a remaining player is promoted.
+1. **Start a room.** On the home page, the first user enters their name and a room name, then clicks **Start a room**. The server generates a 6-character alphanumeric uppercase code. That user becomes the **host**.
+2. **Invite the team.** The host clicks **Copy invite link** in the room header, which copies \`${SITE_URL}/room/{ROOM_CODE}\`, or shares the room code directly.
+3. **Teammates join.** Opening an invite link only asks for a name, then **Join room {CODE}**. Alternatively, enter a name and the code under **Have a code?** on the home page and click **Join**. Each participant (or "trainer") takes a seat around the table.
+4. **Host sets a story.** The host types a story name or ticket ID (e.g. \`PROJ-123\`) in the story bar and clicks **Set story**. **Edit** changes it later.
+5. **Everyone votes.** Each participant picks one Pokémon card from the hand at the bottom of the screen (mouse, touch, or arrow keys plus Enter). A face-down card appears at their seat; the value is not shown to others until reveal. Picking another card changes the vote.
+6. **Host reveals.** The table shows "N of M voted" or "Everyone voted". The host clicks **Reveal cards** and every card flips face-up in one sequence. The table then shows:
+   - **Suggested estimate**: the card closest to the average of numeric votes
+   - **Spread**: e.g. "Votes ranged from 3 to 8 across 5 people", plus the average
+   - **Distribution** bars per card value with voter names
+   - **Consensus** ("Everyone picked 5") when every vote matches
+7. **Next round.** The host either:
+   - **Vote again**: clears all votes and keeps the same story (use after a discussion).
+   - **Next story**: saves the round to history (with its average) and clears the story bar for the next one.
+8. **History.** **History** in the room header opens a panel listing finished stories, newest first, with their averages.
+9. **Leave.** Anyone can click **Leave** at any time. If the host leaves, a remaining participant is promoted to host.
 
 Rooms are ephemeral. They exist while there is real-time activity and are not intended for long-lived collaboration.
 
@@ -73,13 +73,13 @@ There is no hard cap in normal use. Practical Scrum sessions are 3–10 people.
 No. Each vote is associated with the player's display name and is shown after reveal. This matches typical Scrum planning poker, where the team discusses outliers.
 
 **What if someone joins after voting starts?**
-They appear in the player list immediately and can vote on the current story before reveal.
+They take a seat at the table immediately and can vote on the current story before reveal.
 
 **What happens if I refresh the page?**
 You stay in the room with the same identity for the duration of the session. Closing the tab removes you.
 
 **Can I export the results?**
-Story history (story name + average) is shown in the room. There is no formal export today.
+Story history (story name + average) is shown in the room's History panel. There is no formal export today.
 
 **Is there a mobile app?**
 No native app — the web app works on mobile browsers.
