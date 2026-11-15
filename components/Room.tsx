@@ -7,6 +7,7 @@ import StoryBar from './StoryBar';
 import HistoryDrawer from './HistoryDrawer';
 import Icon from './Icon';
 import type { RoomState } from '@/types';
+import { HIDDEN_VOTE } from '@/lib/redact-room';
 
 interface RoomProps {
   roomId: string;
@@ -52,6 +53,8 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
   const [historyOpen, setHistoryOpen] = useState(false);
   // Optimistic vote, valid only for the room snapshot it was made against.
   const [pending, setPending] = useState<{ value: string; room: RoomState } | null>(null);
+  // The server hides vote values until reveal, so remember our own pick here.
+  const [localVote, setLocalVote] = useState<string | null>(null);
   const historyButton = useRef<HTMLButtonElement>(null);
   const menuToggle = useRef<HTMLButtonElement>(null);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,7 +62,10 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
   const { players, currentStory, stories } = room;
   const me = players.find((p) => p.id === playerId);
   const serverVote = me ? me.vote : null;
-  const myVote = pending && pending.room === room ? pending.value : serverVote;
+  const myVote =
+    pending && pending.room === room ? pending.value
+    : serverVote === HIDDEN_VOTE ? localVote
+    : serverVote;
   const revealed = currentStory?.revealed ?? false;
   const hasStory = Boolean(currentStory?.name);
 
@@ -83,9 +89,14 @@ export default function Room({ roomId, playerId, isAdmin, room, onLeave }: RoomP
 
   async function handleVote(value: string) {
     if (revealed || !hasStory) return;
+    const previous = localVote;
     setPending({ value, room });
+    setLocalVote(value);
     const ok = await run('/api/vote', { value }, MESSAGES.vote);
-    if (!ok) setPending(null);
+    if (!ok) {
+      setPending(null);
+      setLocalVote(previous);
+    }
   }
 
   function handleSetStory(storyName: string) {

@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import type { RoomState, Player, CurrentStory, SavedStory } from '@/types';
+import { redactRoomState } from './redact-room';
 
 export async function generateCode(): Promise<string> {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -57,12 +58,13 @@ export async function getRoomState(roomCode: string): Promise<RoomState | null> 
     savedAt: s.savedAt!.toISOString(),
   }));
 
-  return {
+  // Every caller broadcasts or returns this to clients, so hide votes until reveal.
+  return redactRoomState({
     id: room.code,
     name: room.name,
     createdAt: room.createdAt.toISOString(),
     players,
     currentStory,
     stories,
-  };
+  });
 }
