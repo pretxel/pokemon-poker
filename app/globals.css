@@ -453,6 +453,115 @@ button { cursor: pointer; }
   font-weight: 800;
 }
 
+/* ── Other projects ─────────────────────────── */
+
+.refs {
+  grid-column: 1 / -1;
+  padding-top: 24px;
+  border-top: 2px dashed var(--line);
+}
+
+.refs__heading {
+  margin-bottom: 14px;
+  font-size: var(--fs-1);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.refs__list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 600px) {
+  .refs__list { grid-template-columns: 1fr 1fr; }
+}
+
+.ref-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-panel);
+  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+
+.ref-card:hover,
+.ref-card:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 7px 0 var(--line-strong);
+}
+
+.ref-card:focus-visible {
+  outline: 3px solid var(--sun);
+  outline-offset: 2px;
+}
+
+.ref-card__thumb {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-bottom: 2px solid var(--ink);
+}
+
+.ref-card__thumb--potato {
+  background: radial-gradient(circle at 35% 40%, #E8B04A 0%, transparent 55%),
+    linear-gradient(135deg, #3A2A18 0%, #1E150C 100%);
+}
+
+.ref-card__thumb--retro {
+  background: repeating-linear-gradient(45deg, rgba(245, 166, 35, 0.12) 0 12px, transparent 12px 24px),
+    linear-gradient(135deg, #2A1A0A 0%, #5A2E0D 100%);
+}
+
+.ref-card__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--t-flip) var(--ease);
+}
+
+.ref-card:hover .ref-card__thumb img { transform: scale(1.04); }
+
+.ref-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+}
+
+.ref-card__title {
+  font-family: var(--font-display-stack);
+  font-size: var(--fs-3);
+  font-weight: 700;
+}
+
+.ref-card__tagline { color: var(--ink); }
+
+.ref-card__host {
+  font-size: var(--fs-1);
+  color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ref-card,
+  .ref-card__thumb img { transition: none; }
+  .ref-card:hover,
+  .ref-card:focus-visible,
+  .ref-card:hover .ref-card__thumb img { transform: none; }
+}
+
 /* ── Room shell ─────────────────────────────── */
 
 .room {

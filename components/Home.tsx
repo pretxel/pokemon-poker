@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import PokemonCard, { POKEMON_CARDS } from './PokemonCard';
+import OtherProjects from './OtherProjects';
 import type { RoomState } from '@/types';
 
 const HERO_VALUES = ['1', '3', '5', '8', '13'];
@@ -201,6 +202,8 @@ export default function Home({ onJoined, initialRoomId }: HomeProps) {
           </form>
         </section>
       )}
+
+      <OtherProjects />
     </main>
   );
 }
